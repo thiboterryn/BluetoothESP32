@@ -128,52 +128,82 @@ int main(void)
 	
 		// Reset watchdog
     HAL_IWDG_Refresh(&hiwdg);
-		// Put WiFi module in AT mode and verify communication
+	
+		// zet esp module in AT mode en test communicatie
     StringToUsart1("AT\r\n");
     while(!LookForString1(&circularBuffer, "OK\r\n"));
     HAL_Delay(100);
     
-    // Reset WiFi module
+    // Reset esp module
     StringToUsart1("AT+RST\r\n");
     while(!LookForString1(&circularBuffer, "ready\r\n"));
-    HAL_Delay(1000);  // Give module time to fully reset
+    HAL_Delay(1000); 
+		HAL_IWDG_Refresh(&hiwdg);
+		
+		// Initialiseer BLE als GATT-server
+		StringToUsart1("AT+BLEINIT=2\r\n");
+    while(!LookForString1(&circularBuffer, "OK\r\n")); 
+		HAL_Delay(100);
 
-    
-    // Reset de module naar fabrieksinstellingen
-    StringToUsart1("AT+RESTORE\r\n");
-		while(!LookForString1(&circularBuffer, "ready\r\n"));
-    HAL_Delay(1000); // Wacht even na reset
-
-    // Initialiseer BLE als GATT-server
-    StringToUsart1("AT+BLEINIT=2\r\n");
-    while (!LookForString1(&circularBuffer, "OK\r\n"));
-    HAL_Delay(100);
-
-    // Maak een nieuwe GATT-server aan
+    // GATT-server aanmaken
     StringToUsart1("AT+BLEGATTSSRVCRE\r\n");
-    while (!LookForString1(&circularBuffer, "OK\r\n"));
-    HAL_Delay(100);
+    while(!LookForString1(&circularBuffer, "OK\r\n"));
+		HAL_Delay(100);
 
-    // Start de GATT-server
+	  // GATT-server starten
     StringToUsart1("AT+BLEGATTSSRVSTART\r\n");
-    while (!LookForString1(&circularBuffer, "OK\r\n"));
-    HAL_Delay(100);
+    while(!LookForString1(&circularBuffer, "OK\r\n"));
+		HAL_Delay(100);
 
-    // Stel de BLE-apparaatnaam in op "GlucoMeter"
-    StringToUsart1("AT+BLENAME=\"GlucoMeter\"\r\n");
-    while (!LookForString1(&circularBuffer, "OK\r\n"));
-    HAL_Delay(100);
+		// BLENAME instellen werkt niet... naam ingesteld in BLEADVDATA
+//    StringToUsart1("AT+BLENAME=\"GlucoseMeter\"\r\n");
+//    while(!LookForString1(&circularBuffer, "OK\r\n"));
+//		HAL_Delay(100);
 
-    // Controleer of de naam correct is ingesteld
-    StringToUsart1("AT+BLENAME?\r\n");
-    while (!LookForString1(&circularBuffer, "+BLENAME:GlucoMeter\r\n"));
-    HAL_Delay(100);
+		//AT+BLEADVDATA: Set Bluetooth LE Advertising Data
+		/*AT+BLEADVDATAEX=<dev_name>,<uuid>,<manufacturer_data>,<include_power>
+		dev_name = GlucoseMeter  				# dit is de naam die je ziet om het toestel te vinden
+		uuid= 00A2 											# Ziet er in bluetooth app anders uit?
+		manufacturer_data= 5669766573 	# heximaal Vives
+		include_power= 1 								# zendkracht mag ook 0 zijn
+		*/
+		StringToUsart1("AT+BLEADVDATAEX=\"GlucoseMeter\",\"00A2\",\"5669766573\",1\r\n");
+    while(!LookForString1(&circularBuffer, "OK\r\n"));
+		HAL_Delay(100);
 
-    // Start de BLE-advertentie
+    // BLEADVDATA opvragen
+//    StringToUsart1("AT+BLEADVDATAEX?\r\n");
+//    while(!LookForString1(&circularBuffer, "OK\r\n"));
+//		HAL_Delay(100);
+		
+    // Advertentie starten
     StringToUsart1("AT+BLEADVSTART\r\n");
-    while (!LookForString1(&circularBuffer, "OK\r\n"));
-    HAL_Delay(100);
+    while(!LookForString1(&circularBuffer, "OK\r\n"));
+		HAL_Delay(100);
+		
+		// List services on GATT Server:
+    StringToUsart1("AT+BLEGATTSCHAR?\r\n");
+    //while(!LookForString1(&circularBuffer, "OK\r\n"));
+		HAL_Delay(100);
+		
+		// List characteristics on GATT Server:
+    StringToUsart1("AT+BLEGATTSSRV?\r\n");
+    //while(!LookForString1(&circularBuffer, "OK\r\n"));
+		HAL_Delay(100);
+		
+		// Set one byte of first characteristic at first service
+    StringToUsart1("AT+BLEGATTSSETATTR=1,1,,1\r\n");
+    //while(!LookForString1(&circularBuffer, "OK\r\n"));
+		HAL_Delay(100);
+		
+		// Karakteristiek toevoegen aan de GATT-service
+//		StringToUsart1("AT+BLEGATTSCHAR:0x0001,0xFFF1,0x02,0x01,10\r\n");
+//		while(!LookForString1(&circularBuffer, "OK\r\n"));
+//		HAL_Delay(1000);
+ 
 
+
+ 
 	
   /* USER CODE END 2 */
 
